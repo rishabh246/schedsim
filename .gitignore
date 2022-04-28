@@ -3,3 +3,5 @@
 *.dat
 # Schedsim binary
 schedsim 
+# Results
+logs/
