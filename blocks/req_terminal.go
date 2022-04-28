@@ -23,7 +23,8 @@ type RequestDrain interface {
 // AllKeeper implements the RequestDrain interface and caclulates statistics
 // on all the given requests, without sampling
 type AllKeeper struct {
-	items       []float64
+	latencies   []float64
+	slowdowns   []float64
 	name        string
 	stolenCount int
 }
@@ -32,7 +33,9 @@ type AllKeeper struct {
 // request processing
 func (k *AllKeeper) TerminateReq(req engine.ReqInterface) {
 	d := req.GetDelay()
-	k.items = append(k.items, d)
+	s := req.GetServiceTime()
+	k.latencies = append(k.latencies, d)
+	k.slowdowns = append(k.slowdowns, d/s)
 	if stealable, ok := req.(*StealableReq); ok {
 		if stealable.stolen {
 			k.stolenCount++
@@ -45,28 +48,28 @@ func (k *AllKeeper) SetName(name string) {
 	k.name = name
 }
 
-func (k *AllKeeper) avg() float64 {
+func avg(s []float64) float64 {
 	tmp := 0.0
-	for _, v := range k.items {
+	for _, v := range s {
 		tmp += v
 	}
-	return tmp / float64(len(k.items))
+	return tmp / float64(len(s))
 }
 
-func (k *AllKeeper) std() float64 {
+func std(s []float64) float64 {
 	tmp := 0.0
-	for _, v := range k.items {
+	for _, v := range s {
 		tmp += v * v
 	}
-	return math.Sqrt((tmp/float64(len(k.items)) - k.avg()))
+	return math.Sqrt((tmp/float64(len(s)) - avg(s)))
 }
 
-func (k *AllKeeper) getPercentiles() map[float64]float64 {
+func getPercentiles(s []float64) map[float64]float64 {
 	res := make(map[float64]float64)
-	sort.Float64s(k.items)
+	sort.Float64s(s)
 	for _, v := range []float64{0.5, 0.9, 0.95, 0.99} {
-		idx := int(float64(len(k.items)) * v)
-		res[v] = k.items[idx]
+		idx := int(float64(len(s)) * v)
+		res[v] = s[idx]
 	}
 	return res
 }
@@ -75,17 +78,23 @@ func (k *AllKeeper) getPercentiles() map[float64]float64 {
 // This is called by the model
 func (k *AllKeeper) PrintStats() {
 	fmt.Printf("Stats collector: %v\n", k.name)
-	fmt.Printf("Count\tStolen\tAVG\tSTDDev\t50th\t90th\t95th\t99th\tReqs/time_unit\n")
-	fmt.Printf("%v\t%v\t%v\t%v\t", len(k.items), k.stolenCount, k.avg(), k.std())
+	fmt.Printf("Count\tStolen\tAVG (latency)\tSTDDev (latency)\t50th (latency)\t90th (latency)\t95th (latency)\t99th (latency) \tAVG (slowdown)\tSTDDev (slowdown)\t50th (slowdown)\t90th (slowdown)\t95th (slowdown)\t99th (slowdown) \tReqs/time_unit\n")
+	fmt.Printf("%v\t%v\t%v\t%v\t", len(k.latencies), k.stolenCount, avg(k.latencies), std(k.latencies))
 
 	vals := []float64{0.5, 0.9, 0.95, 0.99}
-	if len(k.items) > 0 {
-		percentiles := k.getPercentiles()
+	if len(k.latencies) > 0 {
+		// FIXME: Leaves a slightly inconsistent print if no data is collected by printing avg for latency and not slowdowns, but is largely irrelevant.
+		percentiles := getPercentiles(k.latencies)
+		for _, v := range vals {
+			fmt.Printf("%v\t", percentiles[v])
+		}
+		fmt.Printf("%v\t%v\t", avg(k.slowdowns), std(k.slowdowns))
+		percentiles = getPercentiles(k.slowdowns)
 		for _, v := range vals {
 			fmt.Printf("%v\t", percentiles[v])
 		}
 	}
-	fmt.Printf("%v\n", float64(len(k.items))/engine.GetTime())
+	fmt.Printf("%v\n", float64(len(k.latencies))/engine.GetTime())
 }
 
 // MonitorKeeper keeps statistics about queue lengths

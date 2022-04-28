@@ -40,7 +40,7 @@ type RTCProcessor struct {
 func (p *RTCProcessor) Run() {
 	for {
 		req := p.ReadInQueue()
-		p.Wait(req.GetServiceTime() + p.ctxCost)
+		p.Wait(req.GetRemainingServiceTime() + p.ctxCost)
 		if monitorReq, ok := req.(*MonitorReq); ok {
 			monitorReq.finalLength = p.GetInQueueLen(0)
 		}
@@ -64,8 +64,8 @@ func (p *TSProcessor) Run() {
 	for {
 		req := p.ReadInQueue()
 
-		if req.GetServiceTime() <= p.quantum {
-			p.Wait(req.GetServiceTime() + p.ctxCost)
+		if req.GetRemainingServiceTime() <= p.quantum {
+			p.Wait(req.GetRemainingServiceTime() + p.ctxCost)
 			p.reqDrain.TerminateReq(req)
 		} else {
 			p.Wait(p.quantum + p.ctxCost)
@@ -144,7 +144,7 @@ func (p *PSProcessor) Run() {
 		}
 		if p.count > 0 {
 			p.curr = p.getMinService()
-			d = p.curr.Value.(engine.ReqInterface).GetServiceTime() / p.getFactor()
+			d = p.curr.Value.(engine.ReqInterface).GetRemainingServiceTime() / p.getFactor()
 		} else {
 			d = -1
 		}
@@ -173,7 +173,7 @@ func (p *BoundedProcessor) Run() {
 				factor = 1
 			}
 		}
-		p.Wait(factor * req.GetServiceTime())
+		p.Wait(factor * req.GetRemainingServiceTime())
 		len := p.GetOutQueueLen(0)
 		if len < p.bufSize {
 			p.WriteOutQueue(req)
@@ -200,7 +200,7 @@ func (p *BoundedProcessor2) Run() {
 				factor = 1
 			}
 		}
-		p.Wait(factor * req.GetServiceTime())
+		p.Wait(factor * req.GetRemainingServiceTime())
 		p.reqDrain.TerminateReq(req)
 	}
 }

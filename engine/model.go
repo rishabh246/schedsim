@@ -22,6 +22,7 @@ type ActorInterface interface {
 type ReqInterface interface {
 	GetDelay() float64
 	GetServiceTime() float64
+	GetRemainingServiceTime() float64
 	SubServiceTime(t float64)
 }
 
