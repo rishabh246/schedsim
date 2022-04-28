@@ -13,26 +13,33 @@ func SingleQueue(lambda, mu, duration, quantum, ctxCost float64, genType, procTy
 
 	engine.InitSim()
 
-	//Init the statistics
-	stats := &blocks.AllKeeper{}
-	stats.SetName("Main Stats")
-	engine.InitStats(stats)
-
-	// Add generator
+	// Add generator, statistics
 	var g blocks.Generator
+	var stats *blocks.DetailedKeeper
+
 	if genType == 0 {
 		g = blocks.NewMMRandGenerator(lambda, mu)
+		stats = blocks.NewDetailedKeeper(1, []float64{1/mu})
 	} else if genType == 1 {
 		g = blocks.NewMDRandGenerator(lambda, 1/mu)
+		stats = blocks.NewDetailedKeeper(1, []float64{1/mu})
 	} else if genType == 2 {
 		g = blocks.NewMBRandGenerator(lambda, 1, 10*(1/mu-0.9), 0.9)
+		stats = blocks.NewDetailedKeeper(2, []float64{1,10*(1/mu-0.9)})
 	} else if genType == 3 {
 		g = blocks.NewMBRandGenerator(lambda, 0.5, 200*(1/mu-0.995*0.5), 0.995)
+		stats = blocks.NewDetailedKeeper(2, []float64{0.5,200*(1/mu-0.995*0.5)})
 	} else if genType == 4 {
 		g = blocks.NewMBRandGenerator(lambda, 1, 1000*(1/mu-0.999), 0.999)
+		stats = blocks.NewDetailedKeeper(2, []float64{1,1000*(1/mu-0.999)})
 	} else if genType == 5 {
 		g = blocks.NewMBRandGenerator(lambda, 1, 2*(1/mu-0.5), 0.5)
+		stats = blocks.NewDetailedKeeper(2, []float64{1,2*(1/mu-0.5)})
 	}
+
+	//Init the statistics
+	stats.SetName("Main Stats")
+	engine.InitStats(stats)
 
 	g.SetCreator(&blocks.SimpleReqCreator{})
 

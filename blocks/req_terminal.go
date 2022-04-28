@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 
 	"github.com/epfl-dcsl/schedsim/engine"
 )
@@ -95,6 +96,72 @@ func (k *AllKeeper) PrintStats() {
 		}
 	}
 	fmt.Printf("%v\n", float64(len(k.latencies))/engine.GetTime())
+}
+
+// DetailedKeeper maintains two kind of statistics. One is the overall statistics, the rest is per-request.
+// Each statistic is maintained in an individual AllKeeper 
+type DetailedKeeper struct {
+	overall        AllKeeper
+	perReqKeepers  []AllKeeper // One AllKeeper per request type
+	serviceTimes   []float64   // Service time is used to classify request into types
+	name           string
+	reqTypes       int
+}
+
+// TerminateReq is the function called by the processor after finishing
+// request processing
+func (k *DetailedKeeper) TerminateReq(req engine.ReqInterface) {
+	k.overall.TerminateReq(req)
+	if (k.reqTypes > 1) {
+		// FIXME: This is a major hack and utilizes the fact that schedsim currently only supports multimodal distributions 
+		// by generating service times equal to the peaks. It doesn't work for the exponential distribution, but that's OK,
+		// since it has only 1 req type. This should be fixed by embedding the request type in the request itself.
+	  s := req.GetServiceTime()
+	  p := k.reqTypes
+		v := 0.01 // Wasted. In there because of go inexperience
+	  for p, v = range k.serviceTimes {
+		  if (v == s) {
+				break
+		  }
+    }
+	  if (p >= k.reqTypes) {
+		  panic("Invalid request received by stats manager")
+	  }
+	  k.perReqKeepers[p].TerminateReq(req)
+	}
+}
+
+// SetName gives a name to the particular DetailedKeeper
+func (k *DetailedKeeper) SetName(name string) {
+	k.name = name
+}
+
+// NewDetailedKeeper returns a new *DetailedKeeper
+func NewDetailedKeeper(types int, serviceTimes []float64) *DetailedKeeper {
+	if (len(serviceTimes) != types) {
+		panic("Illegal arguments passed to NewDetailedKeeper")
+	}
+	k := &DetailedKeeper{}
+	k.reqTypes = types
+	k.overall.SetName("Overall stats")
+	for i := 0; i < types; i++ {
+		k.perReqKeepers = append(k.perReqKeepers, AllKeeper{})
+		k.serviceTimes = append(k.serviceTimes, serviceTimes[i])
+		k.perReqKeepers[i].SetName("Keeper" + strconv.Itoa(i))
+	}
+	return k
+}
+
+// PrintStats prints the collected statistics at the end of the similation.
+// This is called by the model
+func (k *DetailedKeeper) PrintStats() {
+	k.overall.PrintStats()
+	if (k.reqTypes > 1) {
+		// If only 1 request type, then no difference in overall and per-req type stats
+		for i := 0; i < k.reqTypes; i++ {
+			k.perReqKeepers[i].PrintStats()
+		}
+	}
 }
 
 // MonitorKeeper keeps statistics about queue lengths
