@@ -8,8 +8,8 @@
 * --topo: single queue (0), multi queue (1), bounded queue (2)
 * --mu: service rate per core [reqs/us]
 * --lambda: arrival rate [reqs/us]
-* --genType: MM (0), MD (1), MB[90-10] (2),  MB[99.9-0.1] (3)
-* --procType: FIFO processing - number of cores from common.go (0), Processor sharing (1)
+* --genType: MM (0), MD (1), MB[90-10] (2),  MB[99.5-0.5] (3),  MB[99.9-0.1] (4), MB[50-50] (5)
+* --procType: FIFO processing - number of cores from common.go (0), Processor sharing (1), Time sharing (2)
 
 #### Examples
 `./schedsim --topo=0 --mu=0.1 --lambda=0.005 --genType=2 --procType=0`

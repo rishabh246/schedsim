@@ -9,7 +9,7 @@ import (
 
 // SingleQueue implement a single-generator-multiprocessor topology with a single
 // queue. Each processor just dequeues from this queue
-func SingleQueue(lambda, mu, duration float64, genType, procType int) {
+func SingleQueue(lambda, mu, duration, quantum, ctxCost float64, genType, procType int) {
 
 	engine.InitSim()
 
@@ -27,7 +27,11 @@ func SingleQueue(lambda, mu, duration float64, genType, procType int) {
 	} else if genType == 2 {
 		g = blocks.NewMBRandGenerator(lambda, 1, 10*(1/mu-0.9), 0.9)
 	} else if genType == 3 {
+		g = blocks.NewMBRandGenerator(lambda, 0.5, 200*(1/mu-0.995*0.5), 0.995)
+	} else if genType == 4 {
 		g = blocks.NewMBRandGenerator(lambda, 1, 1000*(1/mu-0.999), 0.999)
+	} else if genType == 5 {
+		g = blocks.NewMBRandGenerator(lambda, 1, 2*(1/mu-0.5), 0.5)
 	}
 
 	g.SetCreator(&blocks.SimpleReqCreator{})
@@ -50,6 +54,14 @@ func SingleQueue(lambda, mu, duration float64, genType, procType int) {
 		p.AddInQueue(q)
 		p.SetReqDrain(stats)
 		engine.RegisterActor(p)
+	} else if procType == 2 {
+		for i := 0; i < cores; i++ {
+			p := blocks.NewTSProcessor(quantum)
+			p.SetCtxCost(ctxCost)
+			p.AddInQueue(q)
+			p.SetReqDrain(stats)
+			engine.RegisterActor(p)
+		}
 	}
 
 	g.AddOutQueue(q)
