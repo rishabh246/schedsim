@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import string
 import fire
 import os
 import sys
@@ -10,12 +11,15 @@ import csv
 from pprint import pprint
 
 # Only written for single Q
-load_levels = [0.01, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
-metrics = ['Count', 'Stolen', 'AVG', 'STDDev',
-           '50th', '90th', '95th', '99th', 'Reqs/time_unit']
+load_levels = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
+# load_levels = [0.5]
+metrics = ['Count', 'Stolen', 'AVG (latency)', 'STDDev (latency)',
+           '50th (latency)', '90th (latency)', '95th (latency)', '99th (latency)',
+           'AVG (slowdown)', 'STDDev (slowdown)', '50th (slowdown)', '90th (slowdown)', 
+           '95th (slowdown)', '99th (slowdown)', 'Reqs/time_unit']
 
 
-def run(topo, mu, gen_type, proc_type, num_cores):
+def run(topo, mu, gen_type, proc_type, num_cores, quantum =5, ctxCost = 1):
     '''
     mu in us
     '''
@@ -27,7 +31,7 @@ def run(topo, mu, gen_type, proc_type, num_cores):
     res_file = "out.txt"
     with open(res_file, 'w') as f:
         for l in lambdas:
-            cmd = f"schedsim --topo={topo} --mu={mu} --genType={gen_type} --procType={proc_type} --lambda={l}"
+            cmd = f"schedsim --topo={topo} --mu={mu} --genType={gen_type} --procType={proc_type} --lambda={l} --quantum={quantum} --ctxCost={ctxCost}"
             print(f"Running... {cmd}")
             subprocess.run(cmd, stdout=f, shell=True)
 
@@ -40,21 +44,22 @@ def out_to_csv():
         next_is_res = False
         for row in csv_reader:
             if len(row) >= 3 and "interarrival_rate" in row[2]:
-                rate = row[2].split(":")[1]
-                results[rate] = {}
+                load_lvl = (float(row[2].split(":")[1])/float(row[1].split(":")[1])/float(row[0].split(":")[1]))
+                results[load_lvl] = {}
             if next_is_res:
                 for i, metric in enumerate(metrics):
-                    results[rate][metric] = row[i]
+                    results[load_lvl][metric] = row[i]
             next_is_res = "Count" == row[0]
 
     pprint(results)
 
     with open("out.csv", 'w') as f:
         writer = csv.writer(f, delimiter='\t')
-        for rate in results:
+        for load_lvl in results:
             # TODO: let user choose
             writer.writerow(
-                [results[rate]['50th'], results[rate]['99th']])
+                [load_lvl, results[load_lvl]['50th (latency)'], results[load_lvl]['99th (latency)'], 
+                results[load_lvl]['50th (slowdown)'], results[load_lvl]['99th (slowdown)']])
 
 
 if __name__ == "__main__":
