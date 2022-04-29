@@ -36,12 +36,12 @@ def run(topo, mu, gen_type, proc_type, num_cores, quantum =5, ctxCost = 1):
             subprocess.run(cmd, stdout=f, shell=True)
 
 
-def out_to_csv():
+def out_to_csv(input_f, output_f, stats):
     results = {}
-    with open("out.txt", 'r') as f:
+    with open(input_f, 'r') as f:
         csv_reader = csv.reader(f, delimiter='\t')
-        rate = 0
         next_is_res = False
+        correct_stats = False # Hack for now
         for row in csv_reader:
             if len(row) >= 3 and "interarrival_rate" in row[2]:
                 load_lvl = (float(row[2].split(":")[1])/float(row[1].split(":")[1])/float(row[0].split(":")[1]))
@@ -49,11 +49,12 @@ def out_to_csv():
             if next_is_res:
                 for i, metric in enumerate(metrics):
                     results[load_lvl][metric] = row[i]
-            next_is_res = "Count" == row[0]
+            next_is_res = correct_stats and "Count" == row[0]
+            correct_stats = len(row) == 1 and row[0].split(":")[1].strip() == stats
 
     pprint(results)
 
-    with open("out.csv", 'w') as f:
+    with open(output_f, 'w') as f:
         writer = csv.writer(f, delimiter='\t')
         for load_lvl in results:
             # TODO: let user choose
