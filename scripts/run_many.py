@@ -12,7 +12,6 @@ from pprint import pprint
 
 # Only written for single Q
 load_levels = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
-# load_levels = [0.5]
 metrics = ['Count', 'Stolen', 'AVG (latency)', 'STDDev (latency)',
            '50th (latency)', '90th (latency)', '95th (latency)', '99th (latency)',
            'AVG (slowdown)', 'STDDev (slowdown)', '50th (slowdown)', '90th (slowdown)', 
