@@ -65,7 +65,7 @@ func (p *TSProcessor) Run() {
 		req := p.ReadInQueue()
 
 		if req.GetRemainingServiceTime() <= p.quantum {
-			p.Wait(req.GetRemainingServiceTime() + p.ctxCost)
+			p.Wait(req.GetRemainingServiceTime())
 			p.reqDrain.TerminateReq(req)
 		} else {
 			p.Wait(p.quantum)
