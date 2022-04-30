@@ -68,7 +68,7 @@ func (p *TSProcessor) Run() {
 			p.Wait(req.GetRemainingServiceTime())
 			p.reqDrain.TerminateReq(req)
 		} else {
-			p.Wait(p.quantum)
+			p.Wait(p.quantum + p.ctxCost)
 			req.SubServiceTime(p.quantum)
 			p.WriteInQueue(req)
 		}
