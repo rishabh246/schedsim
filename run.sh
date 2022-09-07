@@ -1,47 +1,54 @@
 #!/bin/bash
 
+# Workload types
+MB995=3
+MB5050=5
+# Queueing algorithm
+FIFO=0
+PREEMPTION=2
+
+SINGLE_QUEUE=0
+NUM_CORES=16
+QUANTUM=5 #us
+SHINJUKU_CTX_COST=1 #us
+CONCORD_CTX_COST=0.1 #us
+
 build () {
   go build 
 }
 
-run_mb_995() {
-  # Commands to run all three configurations for the MB[99.5-0.5] workload
-  
-  python3 ./scripts/run_many.py run --topo=0 --mu=0.333611 --gen_type=3 --proc_type=0 --num_cores=16 
-  mv out.txt zygos.txt
-  python3 ./scripts/run_many.py csv zygos.txt zygosKeeper0.csv Keeper0 
-  python3 ./scripts/run_many.py csv zygos.txt zygosKeeper1.csv Keeper1 
-
-  python3 ./scripts/run_many.py run --topo=0 --mu=0.333611 --gen_type=3 --proc_type=2 --num_cores=16 --quantum=5 --ctxCost=1
-  mv out.txt shinjuku.txt
-  python3 ./scripts/run_many.py csv shinjuku.txt shinjukuKeeper0.csv Keeper0 
-  python3 ./scripts/run_many.py csv shinjuku.txt shinjukuKeeper1.csv Keeper1 
-
-  python3 ./scripts/run_many.py run --topo=0 --mu=0.333611 --gen_type=3 --proc_type=2 --num_cores=16 --quantum=5 --ctxCost=0.1
-  mv out.txt concord.txt
-  python3 ./scripts/run_many.py csv concord.txt concordKeeper0.csv Keeper0 
-  python3 ./scripts/run_many.py csv concord.txt concordKeeper1.csv Keeper1 
-
+setup_mb_995() {
+  MU="0.333611"
+  WORKLOAD=$MB995
 }
 
-run_mb_50() {
-  # Commands to run all three configurations for the MB[99.5-0.5] workload
-  
-  python3 ./scripts/run_many.py run --topo=0 --mu=0.01980 --gen_type=5 --proc_type=0 --num_cores=16 
-  mv out.txt zygos.txt
-  python3 ./scripts/run_many.py csv zygos.txt zygosKeeper0.csv Keeper0 
-  python3 ./scripts/run_many.py csv zygos.txt zygosKeeper1.csv Keeper1 
+setup_mb_50() {
+  MU="0.01980"
+  WORKLOAD=$MB5050
+}
 
-  python3 ./scripts/run_many.py run --topo=0 --mu=0.01980 --gen_type=5 --proc_type=2 --num_cores=16 --quantum=5 --ctxCost=1
-  mv out.txt shinjuku.txt
-  python3 ./scripts/run_many.py csv shinjuku.txt shinjukuKeeper0.csv Keeper0 
-  python3 ./scripts/run_many.py csv shinjuku.txt shinjukuKeeper1.csv Keeper1 
+run_workstealing(){
+  python3 ./scripts/run_many.py run --topo=$1 --mu=$2 --gen_type=$3 --proc_type=$4 --num_cores=$5 
+}
 
-  python3 ./scripts/run_many.py run --topo=0 --mu=0.01980 --gen_type=5 --proc_type=2 --num_cores=16 --quantum=5 --ctxCost=0.1
-  mv out.txt concord.txt
-  python3 ./scripts/run_many.py csv concord.txt concordKeeper0.csv Keeper0 
-  python3 ./scripts/run_many.py csv concord.txt concordKeeper1.csv Keeper1 
-  
+run_preemption(){
+  python3 ./scripts/run_many.py run --topo=$1 --mu=$2 --gen_type=$3 --proc_type=$4 --num_cores=$5 --quantum=$6 --ctxCost=$7
+}
+
+collect_stats(){
+  mv out.txt $1.txt
+  python3 ./scripts/run_many.py csv $1.txt Keeper0$1.csv Keeper0 
+  python3 ./scripts/run_many.py csv $1.txt Keeper1$1.csv Keeper1 
+  python3 ./scripts/run_many.py csv $1.txt Overall$1.csv "Overall stats"
+}
+
+run_experiments(){
+  run_workstealing $SINGLE_QUEUE $MU $WORKLOAD $FIFO $NUM_CORES
+  collect_stats zygos
+  run_preemption $SINGLE_QUEUE $MU $WORKLOAD $PREEMPTION $NUM_CORES $QUANTUM $SHINJUKU_CTX_COST
+  collect_stats shinjuku
+  run_preemption $SINGLE_QUEUE $MU $WORKLOAD $PREEMPTION $NUM_CORES $QUANTUM $CONCORD_CTX_COST
+  collect_stats concord
 }
 
 CONFIG=$1
@@ -54,7 +61,8 @@ fi
 
 build
 if [[ $CONFIG == "mb995" ]]; then
-  run_mb_995
+  setup_mb_995
 elif [[ $CONFIG == "mb50" ]]; then
-  run_mb_50
+  setup_mb_50
 fi
+run_experiments
