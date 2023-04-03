@@ -3,7 +3,8 @@ package blocks
 import (
 	"container/list"
 	//	"fmt"
-
+	"math"
+	"math/rand"
 	"github.com/epfl-dcsl/schedsim/engine"
 )
 
@@ -52,24 +53,26 @@ func (p *RTCProcessor) Run() {
 type TSProcessor struct {
 	genericProcessor
 	quantum float64
+	stddev float64 
 }
 
 // NewTSProcessor returns a new *TSProcessor
 func NewTSProcessor(quantum float64) *TSProcessor {
-	return &TSProcessor{quantum: quantum}
+	return &TSProcessor{quantum: quantum, stddev: 0.833*quantum}
 }
 
 // Run is the main processor loop
 func (p *TSProcessor) Run() {
 	for {
 		req := p.ReadInQueue()
-
-		if req.GetRemainingServiceTime() <= p.quantum {
+		perturbation :=  math.Abs(rand.NormFloat64() * p.stddev)
+		effective_quantum := p.quantum + perturbation
+		if req.GetRemainingServiceTime() <= effective_quantum {
 			p.Wait(req.GetRemainingServiceTime())
 			p.reqDrain.TerminateReq(req)
 		} else {
-			p.Wait(p.quantum + p.ctxCost)
-			req.SubServiceTime(p.quantum)
+			p.Wait(effective_quantum + p.ctxCost)
+			req.SubServiceTime(effective_quantum)
 			p.WriteInQueue(req)
 		}
 	}
