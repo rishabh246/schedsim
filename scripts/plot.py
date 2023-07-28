@@ -40,6 +40,6 @@ if __name__ == "__main__":
     column_labels = ['Load (fraction of max)', 'Single queue (no preemption)', 'Precise preemption: N(5,0)', 'Preemption with variance: N(5,1)', 'Preemption with variance: N(5,2)']
 
     # Replace "output.eps" with the desired output file name
-    output_file = "fig2.eps"
+    output_file = "fig5.eps"
 
     plot_tab_file(file_path, column_labels, output_file)
