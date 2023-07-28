@@ -32,23 +32,27 @@ run_workstealing(){
 }
 
 run_preemption(){
-  python3 ./scripts/run_many.py run --topo=$1 --mu=$2 --gen_type=$3 --proc_type=$4 --num_cores=$5 --quantum=$6 --ctxCost=$7
+  python3 ./scripts/run_many.py run --topo=$1 --mu=$2 --gen_type=$3 --proc_type=$4 --num_cores=$5 --quantum=$6 --stddev=$7 --ctxCost=$8
 }
 
 collect_stats(){
   mv out.txt $1.txt
-  python3 ./scripts/run_many.py csv $1.txt Keeper0$1.csv Keeper0 
-  python3 ./scripts/run_many.py csv $1.txt Keeper1$1.csv Keeper1 
-  python3 ./scripts/run_many.py csv $1.txt Overall$1.csv "Overall stats"
+  python3 ./scripts/run_many.py csv $1.txt $1.csv "Overall stats"
 }
 
 run_experiments(){
+  echo "Running single queue"
   run_workstealing $SINGLE_QUEUE $MU $WORKLOAD $FIFO $NUM_CORES
-  collect_stats zygos
-  run_preemption $SINGLE_QUEUE $MU $WORKLOAD $PREEMPTION $NUM_CORES $QUANTUM $SHINJUKU_CTX_COST
-  collect_stats shinjuku
-  run_preemption $SINGLE_QUEUE $MU $WORKLOAD $PREEMPTION $NUM_CORES $QUANTUM $CONCORD_CTX_COST
-  collect_stats concord
+  collect_stats single_queue
+  echo "Running perfect preemption"
+  run_preemption $SINGLE_QUEUE $MU $WORKLOAD $PREEMPTION $NUM_CORES $QUANTUM 0 $CONCORD_CTX_COST
+  collect_stats perfect_preemption
+  echo "Running preemption with stddev 1"
+  run_preemption $SINGLE_QUEUE $MU $WORKLOAD $PREEMPTION $NUM_CORES $QUANTUM 1 $CONCORD_CTX_COST
+  collect_stats preemption_stddev1
+  echo "Running preemption with stddev 2"
+  run_preemption $SINGLE_QUEUE $MU $WORKLOAD $PREEMPTION $NUM_CORES $QUANTUM 2 $CONCORD_CTX_COST
+  collect_stats preemption_stddev2
 }
 
 CONFIG=$1

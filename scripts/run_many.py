@@ -18,7 +18,7 @@ metrics = ['Count', 'Stolen', 'AVG (latency)', 'STDDev (latency)',
            '95th (slowdown)', '99th (slowdown)', 'Reqs/time_unit']
 
 
-def run(topo, mu, gen_type, proc_type, num_cores, quantum =5, ctxCost = 1):
+def run(topo, mu, gen_type, proc_type, num_cores, quantum =5, stddev =0, ctxCost = 1):
     '''
     mu in us
     '''
@@ -30,7 +30,7 @@ def run(topo, mu, gen_type, proc_type, num_cores, quantum =5, ctxCost = 1):
     res_file = "out.txt"
     with open(res_file, 'w') as f:
         for l in lambdas:
-            cmd = f"schedsim --topo={topo} --mu={mu} --genType={gen_type} --procType={proc_type} --lambda={l} --quantum={quantum} --ctxCost={ctxCost}"
+            cmd = f"schedsim --topo={topo} --mu={mu} --genType={gen_type} --procType={proc_type} --lambda={l} --quantum={quantum} --stddev={stddev} --ctxCost={ctxCost}"
             print(f"Running... {cmd}")
             subprocess.run(cmd, stdout=f, shell=True)
 
@@ -50,8 +50,6 @@ def out_to_csv(input_f, output_f, stats):
                     results[load_lvl][metric] = row[i]
             next_is_res = correct_stats and "Count" == row[0]
             correct_stats = len(row) == 1 and row[0].split(":")[1].strip() == stats
-
-    pprint(results)
 
     with open(output_f, 'w') as f:
         writer = csv.writer(f, delimiter='\t')

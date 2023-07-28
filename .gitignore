@@ -5,5 +5,7 @@
 schedsim 
 # Results
 logs/
-Keeper*.csv
-Overall*.csv
+*.csv
+*.text
+*.txt
+*.temp

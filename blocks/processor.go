@@ -57,8 +57,8 @@ type TSProcessor struct {
 }
 
 // NewTSProcessor returns a new *TSProcessor
-func NewTSProcessor(quantum float64) *TSProcessor {
-	return &TSProcessor{quantum: quantum, stddev: 0.833*quantum}
+func NewTSProcessor(quantum, stddev float64) *TSProcessor {
+	return &TSProcessor{quantum: quantum, stddev: stddev}
 }
 
 // Run is the main processor loop
